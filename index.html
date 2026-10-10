@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TyporaX - type the books you love</title>
+  <meta name="description" content="Practice typing by copying out real books. Upload your own novel and pick up exactly where you left off.">
+  <script>
+    /* Apply the saved theme before first paint to avoid a flash. */
+    try {
+      var s = JSON.parse(localStorage.getItem('typorax:settings') || '{}');
+      var dark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = s.theme || (dark ? 'dark' : 'light');
+    } catch (e) { document.documentElement.dataset.theme = 'light'; }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital@0;1&family=DM+Sans:wght@400;500;600&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#/" aria-label="TyporaX library">
+      <span class="brand-mark" aria-hidden="true">T</span>
+      <span class="brand-name">Typora<em>X</em></span>
+    </a>
+    <div class="top-actions">
+      <button id="btn-tour" class="icon-btn" type="button" aria-label="Take the tour" title="Take the tour"></button>
+      <button id="btn-sound" class="icon-btn" type="button" aria-label="Toggle typing sound" title="Typing sound"></button>
+      <button id="btn-settings" class="icon-btn" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings" title="Settings"></button>
+    </div>
+
+    <section id="settings" class="panel" hidden aria-label="Settings">
+      <div class="row">
+        <span class="label">Theme</span>
+        <div class="seg" role="group" aria-label="Theme">
+          <button type="button" data-theme-set="light">Paper</button>
+          <button type="button" data-theme-set="dark">Lamplight</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="label" for="set-sound">Typing sound</label>
+        <input id="set-sound" class="switch" type="checkbox" role="switch">
+      </div>
+      <div class="row">
+        <label class="label" for="set-profile">Sound style</label>
+        <select id="set-profile">
+          <option value="typewriter">Typewriter</option>
+          <option value="soft">Soft keys</option>
+        </select>
+      </div>
+      <div class="row">
+        <label class="label" for="set-volume">Volume</label>
+        <input id="set-volume" type="range" min="0" max="1" step="0.05">
+      </div>
+      <div class="row">
+        <label class="label" for="set-size">Text size</label>
+        <input id="set-size" type="range" min="16" max="32" step="1">
+      </div>
+      <div class="row">
+        <label class="label" for="set-wpm">Live speed</label>
+        <input id="set-wpm" class="switch" type="checkbox" role="switch">
+      </div>
+    </section>
+  </header>
+
+  <!-- Library -->
+  <main id="view-home" class="home">
+    <section class="hero">
+      <p class="eyebrow">Read slowly. Type deliberately.</p>
+      <h1>Type the books you love.</h1>
+      <p class="lede">Copy out a classic, or upload your own novel. TyporaX remembers exactly where you stopped, so every session picks up mid-sentence.</p>
+      <button id="btn-add" class="btn primary" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Add your own text
+      </button>
+    </section>
+
+    <section id="sec-continue" class="shelf" hidden>
+      <h2>Continue reading</h2>
+      <div id="list-continue" class="continue-grid"></div>
+    </section>
+
+    <section id="sec-mine" class="shelf">
+      <h2>Your library</h2>
+      <div id="list-mine" class="grid"></div>
+    </section>
+
+    <section id="sec-popular" class="shelf">
+      <h2>Popular books</h2>
+      <p class="note">Opening excerpts of public-domain classics. Want the whole book? Download its plain-text file (for example from <a href="https://www.gutenberg.org" target="_blank" rel="noopener">Project Gutenberg</a>) and add it to your library.</p>
+      <div id="list-popular" class="grid"></div>
+    </section>
+
+    <footer class="foot">Everything stays in this browser. Nothing is uploaded anywhere.</footer>
+  </main>
+
+  <!-- Typing -->
+  <main id="view-read" class="read" hidden>
+    <div class="read-head">
+      <a class="back" href="#/">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        Library
+      </a>
+      <div class="read-title">
+        <h2 id="read-title"></h2>
+        <p id="read-author"></p>
+      </div>
+      <div class="read-menu">
+        <div class="seg layout-seg" role="group" aria-label="Page layout">
+          <button type="button" data-layout="page" title="One page">Page</button>
+          <button type="button" data-layout="book" title="Open book, two pages">Book</button>
+        </div>
+        <button id="btn-jump" class="btn small" type="button">Start from&hellip;</button>
+        <button id="btn-restart" class="link-btn" type="button">Start over</button>
+      </div>
+    </div>
+
+    <div class="bar" role="progressbar" aria-label="Book progress" aria-valuemin="0" aria-valuemax="100"><span id="bar-fill"></span></div>
+
+    <article class="sheet" id="sheet">
+      <p id="context" class="context" aria-hidden="true"></p>
+      <div class="page-wrap">
+        <div class="spread">
+          <div id="page" class="page" aria-label="Text to type"></div>
+          <div id="page2" class="page page2" aria-label="Text to type, right-hand page" hidden></div>
+        </div>
+        <span id="wpm-tip" class="wpm-tip" aria-hidden="true" hidden></span>
+      </div>
+
+      <div id="done" class="done" hidden>
+        <h3>The end.</h3>
+        <p id="done-stats"></p>
+        <div class="done-actions">
+          <a class="btn primary" href="#/">Back to library</a>
+          <button id="btn-again" class="btn" type="button">Type it again</button>
+        </div>
+      </div>
+    </article>
+
+    <dl class="stats" id="stats">
+      <div><dt>Speed</dt><dd><span id="st-wpm">--</span> <small>wpm</small></dd></div>
+      <div><dt>Accuracy</dt><dd><span id="st-acc">--</span><small>%</small></dd></div>
+      <div><dt>Time on book</dt><dd id="st-time">0m</dd></div>
+      <div><dt>Progress</dt><dd><span id="st-pct">0</span><small>%</small></dd></div>
+    </dl>
+
+    <p class="hint">Just start typing. <kbd>Enter</kbd> at each <span class="nl-demo">&crarr;</span> &middot; <kbd>Backspace</kbd> fixes mistakes &middot; <kbd>Esc</kbd> returns to the library. Your place is saved automatically.</p>
+  </main>
+
+  <dialog id="dlg-add" aria-labelledby="dlg-title">
+    <form id="form-add" autocomplete="off">
+      <header>
+        <h2 id="dlg-title">Add your own text</h2>
+        <button type="button" class="icon-btn" id="dlg-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </header>
+
+      <div class="fields">
+        <label>Title
+          <input id="add-title" type="text" maxlength="120" placeholder="e.g. The Hobbit" required>
+        </label>
+        <label>Author <span class="opt">(optional)</span>
+          <input id="add-author" type="text" maxlength="120" placeholder="e.g. J.R.R. Tolkien">
+        </label>
+
+        <label id="drop" class="drop" for="add-file">
+          <input id="add-file" type="file" accept=".txt,.text,.md,text/plain">
+          <strong>Drop a .txt file here</strong>
+          <span>or click to choose one</span>
+        </label>
+
+        <label>Or paste text
+          <textarea id="add-text" rows="7" placeholder="Paste a chapter, an article, a poem..."></textarea>
+        </label>
+        <p id="add-count" class="count">0 words</p>
+        <p id="add-error" class="error" role="alert" hidden></p>
+      </div>
+
+      <footer>
+        <label class="check"><input id="add-start" type="checkbox" checked> Start typing right away</label>
+        <button type="submit" class="btn primary">Save to library</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-jump" aria-labelledby="jump-title">
+    <form id="form-jump" autocomplete="off">
+      <header>
+        <h2 id="jump-title">Start from&hellip;</h2>
+        <button type="button" class="icon-btn" id="jump-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </header>
+
+      <div class="fields">
+        <section>
+          <h3>Chapters and sections</h3>
+          <div id="jump-chapters" class="jump-list"></div>
+          <p id="jump-nochap" class="count" hidden>No chapter headings were found in this text. Use the slider or search below instead.</p>
+        </section>
+
+        <section>
+          <h3>Any point in the book</h3>
+          <input id="jump-range" type="range" min="0" max="1000" step="1" value="0" aria-label="Position in the book">
+          <p id="jump-pct" class="count"></p>
+        </section>
+
+        <section>
+          <h3>Find a phrase</h3>
+          <input id="jump-search" type="text" placeholder="Type a few words from where you want to start">
+          <div id="jump-results" class="jump-list"></div>
+        </section>
+
+        <div class="jump-preview">
+          <span class="count">You will start at</span>
+          <p id="jump-snippet"></p>
+        </div>
+      </div>
+
+      <footer>
+        <button type="button" class="link-btn" id="jump-cancel">Cancel</button>
+        <button type="submit" class="btn primary">Start here</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <aside id="tour-ask" class="tour-ask" hidden aria-labelledby="ask-title">
+    <h3 id="ask-title">Welcome to TyporaX</h3>
+    <p>Want a quick tour of the features? It takes about 30 seconds and you can skip it any time.</p>
+    <div class="tour-actions">
+      <button id="ask-no" class="link-btn" type="button">Not now</button>
+      <span class="spacer"></span>
+      <button id="ask-yes" class="btn primary" type="button">Show me</button>
+    </div>
+  </aside>
+
+  <div id="tour" class="tour" hidden>
+    <div id="tour-spot" class="tour-spot"></div>
+    <div id="tour-card" class="tour-card" role="dialog" aria-live="polite" aria-label="Tour"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/books.js"></script>
+  <script src="js/text.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
